@@ -27,8 +27,18 @@ app.get("/", function(request, response){
         <h1>
             Корневой маршрут
         </h1>
-        <a href='/good/get'>Получение всех товаров: /good/get</a>
-        <a href='/good/get/1'>Получения одного товара: /good/get/[id]</a>
+        <ul>
+            <li>
+                <a href='/good/get'>
+                    Получение всех товаров: /good/get
+                </a>
+            </li>
+            <li>
+                <a href='/good/get/1'>
+                    Получения одного товара: /good/get/[id]
+                </a>
+            </li>
+        </ul>
     `);
 })
 
@@ -88,9 +98,53 @@ app.get(
 )
 
 /**
+ * ДЗ 
  * Маршрут для получения одного пользователя пользователей
  * Пример использования: http://localhost:3000/user/get/:id
  */
+
+
+/**
+ * Маршрут для добавления одного товара
+ * Пример использования http://localhost:3000/good/add
+ * Тип маршрута Post
+ * data: {TITLE, DISCR, PRICE, IMG, COUNT}
+ */
+app.post(
+    '/good/add',
+    function(request, response){
+        //Данные из запроса
+        console.log(request.body)
+        const good = new Good();
+        good.addItem(response, request.body)
+    }
+)
+
+
+/**
+ * Вспомогательный маршрут для добавления товара
+ * Содержит форму для добавления товара
+ * Тип маршрута Get
+*/
+app.get(
+    '/good/form/add',
+    function(request, response){
+        response.send(`
+            <form method='POST' action='/good/add'>
+                <input name='TITLE' placeholder='Название товара'/>
+                <input name='DISCR' placeholder='Описание товара'/>
+                <input name='PRICE' type='number' placeholder='Цена товара'/>
+                <input name='IMG' placeholder='Изображение товара'/>
+                <input name='COUNT' type='number' placeholder='Количество товара'/>
+                <input type='submit' value='Добавить товар'>
+            </form> 
+        `)
+    }
+)
+
+
+
+
 
 
 app.post('/getdata', function(request, response){
