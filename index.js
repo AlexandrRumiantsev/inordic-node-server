@@ -5,6 +5,16 @@ const express = require("express");
 // Запускаем express
 // express, это метод, результат работы которого мы перемещаем в переменную app
 const app = express();  
+//Подключим плаги multer
+const multer = require('multer')
+//Настроим multer, 1 этап - указываем в какую папку будет происходить сохранение файла
+const uploadFromForm = multer({dest: 'uploads/'})
+//Настроим multer, 2 этап - Укажем элемент, из которого элемента будет приходить файл
+const fileFromForm = uploadFromForm.single('INORDICFILE');
+//импортируем плагин для работы с айловой системой
+const fs = require("fs");
+
+
 
 // Импорт моделей клссов
 const Good = require("./classes/Good");
@@ -102,7 +112,17 @@ app.get(
  * Маршрут для получения одного пользователя пользователей
  * Пример использования: http://localhost:3000/user/get/:id
  */
-
+app.get(
+    '/user/get/:id',
+    function(request, response){
+        //Создаем на основе класса объект
+        const user = new User();
+        //Получить идентификатор из адресной строки
+        const id = request.params.id
+        //Задействуем метод, который описан внутри класса
+        user.getItem(response, id)
+    }
+)
 
 /**
  * Маршрут для добавления одного товара
@@ -120,6 +140,123 @@ app.post(
     }
 )
 
+/**
+ * Маршрут для обновления товара
+ * Пример - http://localhost:3000/good/update/
+ * type - POST
+ */
+
+app.post(
+    '/good/update',
+    function(request, response){
+        console.log(request.body)
+        const good = new Good()
+        good.updateItem(response, request.body)
+    }
+)
+
+/**
+ * Маршрут для удаления файла
+ * Пример http://localhost:3000/file/del/:name
+ * type - GET
+ */
+app.get(
+    '/file/del/:name',
+    function(request, response){
+        const fileName = request.params.name
+        // Передавая фукнции unlink, полный путь до файл, мы задействуем его удаление
+        fs.unlink(`./uploads/${fileName}`, function(error){
+            //Объект для формирования ответа от сервера
+            const responseObject = {}
+
+            if (error) {
+                responseObject.status = 500;
+                responseObject.message = 'Файл не удалился'
+                response.send(JSON.stringify(responseObject))
+            }
+
+            responseObject.status = 200;
+            responseObject.message = 'Файл удалился'
+            response.send(JSON.stringify(responseObject))
+        })
+    }
+)
+
+
+/**
+ * Маршрут для зписи файла в папку на Сервере
+ * Пример http://localhost:3000/file/add
+ */
+
+app.post(
+    '/file/add', 
+    fileFromForm,
+    function(request, response){
+       console.log(request.file)
+       //Путь к файлу (откуда мы его забираем)
+       const filePath = request.file.path;
+       //Формируем путь, куда хотим сохранить файл
+       const pathToSave = `uploads/${request.file.originalname}`;
+       //Прочитаем временный файл
+       const pathForReadFile = fs.createReadStream(filePath);
+       //Записать постоянный файл
+       const desc = fs.createWriteStream(pathToSave)
+       //Закончить запись файла
+       pathForReadFile.pipe(desc);
+       //Объект для формирования ответа от сервера
+       const responseObject = {}
+       //Перехватим событие после удачной записи файла
+       pathForReadFile.on('end', function(){
+        responseObject.status = 200
+        responseObject.message = 'файл успешно записан'
+        response.send(JSON.stringify(responseObject))
+       })
+
+       //Перехватим событие после НЕ удачной записи файла
+       pathForReadFile.on('error', function(){
+        responseObject.status = 500
+        responseObject.message = 'файл не записан'
+        response.send(JSON.stringify(responseObject))
+       })
+
+    }
+)
+
+
+//Вспомогательные формы
+app.get(
+    '/file/form/add', 
+    function(request, response){
+       response.send(`
+            <h1>Форма для загрузки файла</h1>
+            <form action='/file/add' method='POST' enctype='multipart/form-data'>
+                <input type='file' name="INORDICFILE"/>
+                <input type='submit' />
+            </form>
+       `) 
+    }
+)
+
+app.get(
+    '/good/form/update/:id',
+    function(request, response){
+        const id = request.params.id
+        response.send(
+            ` <h1>Редактируем товара: ${id}</h1>
+            <form action='/good/update' method='POST'>
+                <input type='hidden' name='ID' value='${id}' />
+                <input name='TITLE' placeholder='Название товара' />
+                <input name='DISCR' placeholder='Описание товара' />
+                <input name='PRICE' placeholder='Цена товара' type='number' />
+                <input name='IMG' placeholder='Изобрважение товара' />
+                <input name='COUNT' placeholder='Количество товара' type='number' />
+                <input type='submit' value='Обновить товар'  />
+            </form>
+            `
+        )
+
+    }
+)
 
 /**
  * Вспомогательный маршрут для добавления товара
@@ -142,34 +279,5 @@ app.get(
     }
 )
 
-
-
-
-
-
-app.post('/getdata', function(request, response){
-    console.log(request.body.test)
-    response.send(`<h2>Получение данных ${request.body.test}, ${request.body.inordic}</h2>`);
-})
-
-app.get('/senddata', function(request, response){
-    response.send(
-        `
-        <h2>Отправка данных</h2>
-        <form action='/getdata' method='POST'>
-            <input type='text' name='test'>
-            <input type='text' name='inordic'>
-            <input type='submit' value='Отправить'>
-        </form> 
-        `
-    );
-})
-
-app.get('/hello', function(request, response){
-    console.log(request);
-    response.send(
-        `test = ${request.query.test}, inordic = ${request.query.inordic}`
-    )
-})
 // Запускаем все, что было написано выше, на 3000 порте
 app.listen(3000);

@@ -16,9 +16,18 @@ module.exports = class DataBase {
     }
     //Название таблицы к которой мы обращаемся, пока пустое абстрактное название
     #table_name 
+    //Определим приватный стату заранее
+    #status_text
 
+    //Метод, который устанавливает приватный атрибут table_name
     setTableName(tableName){
         this.#table_name = tableName;
+    }
+
+    //Метод, который устанавливает приватный атрибут STATUS_TEXT
+    setStatus(statusText){
+        //Устанавливаем в приватный атрибут переданное значение
+        this.#status_text = statusText;
     }
 
     //Метод, который устанавливает соединение с БД 
@@ -73,33 +82,45 @@ module.exports = class DataBase {
         let key = 0;
         for(let field in data){
             console.log(field)
-            fieldsName += field
+            //Формируем в цикле, строку с названием полей в базе данных
+            fieldsName += field;
+            //Формируем в цикле, строку с значением полей
+            valueFields += `'${data[field]}'`;
             //Обновляем ключе на единицу
-            console.log(Object.keys(data).length)
-            console.log(key)
+            console.log(Object.keys(data).length);
+            console.log(key);
             if(Object.keys(data).length - 1 === key) {
-                fieldsName += ')'
+                fieldsName += ')';
+                valueFields += ')';
             } else {
-                fieldsName += ', '
+                fieldsName += ', ';
+                valueFields += ', ';
             }
 
             key++
         }
-        console.log(fieldsName)
+        //console.log(fieldsName)
+        //console.log(valueFields)
         const sql = `
             INSERT INTO ${this.#table_name} ${fieldsName}
-            VALUES
-            ('${id}', '${data.TITLE}', '${data.DISCR}', '${data.PRICE}', '${data.IMG}', '${data.COUNT}' )
+            VALUES ${valueFields}
         `;
+        //Задействуем, созданный нами метод, для обращения к БД
+        this.sendSqlToBase(sql, response);
+    }
+
+    sendSqlToBase(sqlString, response){
         //Получим соединение с БД и отправляем запрос
-        //const connect = this.getConnect(); 
+        const connect = this.getConnect(); 
         //Отправим запрос
-        /*connect.query(sql, function(error, result){
+        const status = this.#status_text
+        connect.query(sqlString, function(error, result){
             //Обрабатываем НЕ успешный запрос к серверу
             if(error) {
                 const responseObject = {
                     status: 500,
-                    data: error
+                    data: error,
+                    statusText: status['500'],
                 }
                 response.send(
                     JSON.stringify(responseObject)
@@ -109,12 +130,13 @@ module.exports = class DataBase {
                 //Отправим ответ в JSON формате с информацией о товаре и статусом
                 const responseObject = {
                     status: 200,
-                    data: data
+                    statusText: status['200'],
+                    data: result
                 }
                 response.send(
                     JSON.stringify(responseObject)
                 )
             }
-        })*/
+        })
     }
 }

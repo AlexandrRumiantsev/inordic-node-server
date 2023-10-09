@@ -1,35 +1,22 @@
-const mysql = require("mysql")
+const DataBase = require('./DataBase')
+
 /**
  * Класс для работы с пользователями из базы данных
  * getAll - метод для получения всех пользователей
  */
-module.exports = class User {
-    #config = {
-        host: "94.228.126.172",
-        port: 3306,
-        user: "inordic_sch_usr",
-        password: "VANCfzNsov9GDt1M",
-        database: "inordic_school",
-        connectionLimit : 1000,
-        connectTimeout  : 60 * 60 * 1000,
-        acquireTimeout  : 60 * 60 * 1000,
-        timeout         : 60 * 60 * 1000
+module.exports = class User extends DataBase {
+    //Текстовки для успешного и неудачного запроса
+    #STATUS_TEXT = {
+        '200': 'Пользователь успешно добавлен',
+        '500': 'Пользователь не добавлен, произошла ошибка',
     }
-
-    getAll(res){
-        //Создаем соединение с базой данных
-        const connect = mysql.createPool(this.#config)
-        //Отправим запрос к базе данных 
-        connect.query(
-            'SELECT * FROM users',
-            //Функция обратного вызова
-            function(error, result){
-                //Передаем результат запроса в функцию send
-                res.send(
-                    result
-                )
-            }
-        )
+    constructor(){
+        //ключевое слово супер, говорит нам о том, 
+        //что мы забираем из родительского класса его методы и атрибуты
+        super();
+        //устанавливаем название таблицы
+        this.setTableName('users');
+        //устанавливаем статусы
+        this.setStatus(this.#STATUS_TEXT)
     }
-
 }
